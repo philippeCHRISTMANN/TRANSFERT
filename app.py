@@ -32,40 +32,9 @@ def calc_taux_moyen(capital_total, mensualite_constante, duree_mois):
 st.markdown('<div style="font-size: 24px; font-weight: bold; color: #1E3A8A; border-bottom: 3px solid #E91E63; padding-bottom: 5px; margin-bottom: 20px;">🔄 Anticipation : Transfert de PTZ & Prêt Relais</div>', unsafe_allow_html=True)
 st.markdown("<p style='color: #64748B; font-size: 15px;'>Découvrez le gain généré par la conservation de votre Prêt à Taux Zéro (PTZ) et comparez la mécanique d'achat entre une <b>Vente préalable</b> et un <b>Prêt Relais</b>.</p>", unsafe_allow_html=True)
 
-# --- A. ENCADRÉ PÉDAGOGIQUE (LÉGISLATION) ---
-with st.expander("📚 Les règles légales du transfert de PTZ (Service-Public.fr)", expanded=True):
-    html_regles = """
-<div style="background-color: #F8FAFC; padding: 15px; border-radius: 8px; border-left: 4px solid #3B82F6; margin-bottom: 15px;">
-<p style="font-size: 13px; color: #334155; margin-bottom: 10px;">La loi vous permet de conserver les avantages de votre Prêt à Taux Zéro en cours si vous revendez votre logement pour acheter une <b>nouvelle résidence principale</b>. Le transfert ne concerne que le <b>Capital Restant Dû (CRD)</b>. Cependant, la date de revente change tout :</p>
-
-<strong style="color: #1E3A8A; font-size: 14px;">⏳ Revente MOINS de 6 ans après le versement du PTZ</strong>
-<ul style="font-size: 13px; color: #475569; margin-top: 5px;">
-<li>Votre nouveau logement <b>doit respecter les conditions d'éligibilité au PTZ en vigueur à la date du transfert</b>.</li>
-<li><i>Exemple (Neuf vers Ancien) :</i> Pour transférer un PTZ vers un logement ancien avant 6 ans, la nouvelle maison devra impérativement se situer en zone détendue (B2 ou C), et vous devrez y réaliser au moins 25% de travaux d'amélioration. Si vous visez de l'ancien sans travaux, le transfert sera refusé par la réglementation.</li>
-</ul>
-
-<strong style="color: #10B981; font-size: 14px;">⌛ Revente PLUS de 6 ans après le versement du PTZ</strong>
-<ul style="font-size: 13px; color: #475569; margin-top: 5px; margin-bottom: 15px;">
-<li><b>Aucune condition d'éligibilité n'est exigée sur la typologie du nouveau logement !</b></li>
-<li><i>Exemple (Neuf vers Ancien) :</i> Vous pouvez acheter n'importe quel logement ancien, où vous voulez, avec ou sans travaux, et transférer votre PTZ à 0% dessus.</li>
-</ul>
-
-<strong style="color: #9333EA; font-size: 14px;">💡 Ce qui n'est PLUS contrôlé (Revenus et Primo-accession)</strong>
-<ul style="font-size: 13px; color: #475569; margin-top: 5px;">
-<li>L'article D31-10-6 du Code de la construction est clair : lors d'un transfert, <b>les plafonds de revenus (RFR) ne sont pas recalculés</b>. Même si votre salaire a fortement augmenté, vous conservez votre PTZ.</li>
-<li>La condition de <b>primo-accédant</b> n'est plus exigée non plus (logique, puisque vous revendez un bien !).</li>
-</ul>
-
-<div style="background-color: #FEF2F2; padding: 10px; border-radius: 6px; border: 1px solid #FCA5A5; font-size: 12px; color: #991B1B; margin-top: 15px;">
-<b>⚠️ Accord Bancaire :</b> Dans tous les cas, le transfert n'est pas automatique. La banque refusera l'opération si elle estime que vos nouvelles capacités de remboursement ou la garantie du nouveau bien sont insuffisantes pour absorber le nouveau prêt complémentaire.
-</div>
-</div>
-"""
-    st.markdown(html_regles, unsafe_allow_html=True)
-
 st.write("---")
 
-# --- B. SAISIE DES DONNÉES ---
+# --- A. SAISIE DES DONNÉES ---
 st.markdown("### 📝 Étape 1 : La vente de votre bien et vos crédits en cours")
 st.info("💡 Placez-vous dans la situation estimée à la date de votre future vente (ex: dans 3 ou 6 mois). Indiquez la valeur du bien et les capitaux restants dus à cette date.")
 
@@ -119,8 +88,8 @@ with col_pp:
 
 st.write("---")
 
-# --- C. LE FUTUR PROJET ---
-st.markdown("### 🎯 Étape 2 : Le futur projet (Acquisition)")
+# --- B. LE FUTUR PROJET ---
+st.markdown("### 🎯 Étape 2 : Le futur projet (Achat)")
 
 # Mensualité actuelle indicative pour pré-remplir la cible
 max_len_actuel = max(len(ptz_flow_total), len(pp_flow_total))
@@ -135,7 +104,7 @@ with col_t1:
 with col_t2:
     taux_futur = st.number_input("Taux estimé du futur crédit classique (%)", min_value=0.5, value=3.60, step=0.10)
 
-# --- D. CALCULS MATHÉMATIQUES EXPERTS ---
+# --- C. CALCULS MATHÉMATIQUES EXPERTS ---
 if len(ptz_flow_total) == 0:
     st.warning("⚠️ Vous n'avez pas saisi de durée ou de mensualité pour le PTZ. Les calculs ne peuvent pas aboutir.")
 else:
@@ -187,9 +156,9 @@ else:
             gain_transfert_budget = budget_achat_transfert - budget_achat_soldetout
             
             # --- CALCUL DU VRAI TAUX MOYEN PONDÉRÉ LISSÉ (TRI ACTUARIEL) ---
-            # La dette totale portée par le client est le PTZ + le nouveau prêt
+            # CORRECTION EFFECTUÉE ICI : On a retiré le * 100
             dette_totale_en_cours = crd_ptz_transfert + pv_nouveau_pret_lisse
-            taux_moyen_transfert = calc_taux_moyen(dette_totale_en_cours, mens_cible_future, duree_nouveau_pret_mois) * 100
+            taux_moyen_transfert = calc_taux_moyen(dette_totale_en_cours, mens_cible_future, duree_nouveau_pret_mois)
 
             # ==========================================
             # PARTIE 1 : L'AVANTAGE DU TRANSFERT (LE BUDGET)
