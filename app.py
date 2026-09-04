@@ -2,8 +2,10 @@ import streamlit as st
 import plotly.graph_objects as go
 import numpy as np
 
+# Configuration de la page
 st.set_page_config(page_title="Simulateur Transfert PTZ & Stratégie Revente", layout="wide")
 
+# Fonction utilitaire pour formater les euros proprement (sans erreur d'affichage Streamlit)
 def fmt(n):
     return f"{n:,.0f}".replace(",", " ")
 
@@ -87,10 +89,14 @@ with col_t2:
     taux_futur = st.number_input("Taux estimé du futur crédit classique (%)", min_value=0.5, value=4.0, step=0.10)
 
 # --- C. CALCULS MATHÉMATIQUES EXPERTS ---
-if len(ptz_flow_total) > 0:
+if len(ptz_flow_total) == 0:
+    st.warning("⚠️ Vous n'avez pas saisi de durée ou de mensualité pour le PTZ. Les calculs ne peuvent pas aboutir.")
+else:
     crd_ptz_transfert = sum(ptz_flow_total)
     
-    if crd_ptz_transfert > 0:
+    if crd_ptz_transfert <= 0:
+        st.warning("Le capital restant dû de votre PTZ sera de 0 €. Le transfert est sans objet.")
+    else:
         duree_nouveau_pret_mois = 300 # 25 ans
         tm_futur = taux_futur / 100 / 12
         
@@ -141,94 +147,93 @@ if len(ptz_flow_total) > 0:
 
             col_r1, col_r2 = st.columns(2)
             
-            # SCÉNARIO 1 : VENTE D'ABORD
-            html_s1 = f"""
-<div style="background-color: #F8FAFC; border: 2px solid #3B82F6; border-radius: 8px; padding: 20px; height: 100%;">
-<h4 style="color: #1E3A8A; margin-top: 0; font-size: 18px;">1️⃣ Vente préalable (Acheter après avoir vendu)</h4>
-<p style="color: #334155; font-size: 13px; margin-bottom: 20px;">Vous encaissez directement 100% de la vente. Le plan de financement est définitif dès la signature.</p>
+            # SCÉNARIO 1 : VENTE D'ABORD (Sécurisé pour éviter les NameError)
+            html_s1 = (
+                f"<div style='background-color: #ECFDF5; border: 2px solid #10B981; border-radius: 8px; padding: 20px; height: 100%; position: relative;'>"
+                f"<div style='position: absolute; top: -12px; right: 20px; background-color: #10B981; color: white; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px;'>+ BUDGET MAXIMAL</div>"
+                f"<h4 style='color: #065F46; margin-top: 0;'>1️⃣ Vente préalable (Acheter après avoir vendu)</h4>"
+                f"<p style='color: #047857; font-size: 13px; margin-bottom: 20px;'>Vous encaissez directement 100% de la vente. Le plan de financement est définitif dès la signature.</p>"
+                f"<div style='background-color: white; border-radius: 6px; padding: 15px; border: 1px solid #BFDBFE;'>"
+                f"<div style='color: #1E3A8A; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #BFDBFE; padding-bottom: 5px;'>Plan de financement :</div>"
+                f"<div style='display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 5px;'>"
+                f"<span>Apport (Fruit de vente {fmt(cash_vente_secu)}€ + Épargne {fmt(epargne_perso)}€)</span> <strong>{fmt(apport_total_secu)} €</strong>"
+                f"</div>"
+                f"<div style='display: flex; justify-content: space-between; font-size: 13px; color: #DB2777; margin-bottom: 5px;'>"
+                f"<span>PTZ (Dette transférée, non soldée)</span> <strong>{fmt(crd_ptz_transfert)} €</strong>"
+                f"</div>"
+                f"<div style='display: flex; justify-content: space-between; font-size: 13px; color: #0284C7; margin-bottom: 10px;'>"
+                f"<span>Nouveau Prêt Bancaire (Lissé)</span> <strong>{fmt(pv_nouveau_pret_lisse)} €</strong>"
+                f"</div>"
+                f"<div style='display: flex; justify-content: space-between; font-size: 15px; color: #0F172A; font-weight: 900; border-top: 2px solid #E2E8F0; padding-top: 5px;'>"
+                f"<span>TOTAL BUDGET ACHAT</span> <span style='color: #0284C7;'>{fmt(budget_achat_global)} €</span>"
+                f"</div>"
+                f"</div>"
+                f"<div style='margin-top: 20px; text-align: center; background-color: #F0F9FF; padding: 10px; border-radius: 6px; border: 1px dashed #3B82F6;'>"
+                f"<div style='font-size: 12px; color: #0284C7; font-weight: bold;'>Mensualité immédiate et définitive</div>"
+                f"<div style='font-size: 22px; font-weight: 900; color: #1E3A8A;'>{fmt(mens_cible_future)} € / mois</div>"
+                f"</div>"
+                f"</div>"
+            )
 
-<div style="background-color: white; border-radius: 6px; padding: 15px; border: 1px solid #BFDBFE;">
-<div style="color: #1E3A8A; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #BFDBFE; padding-bottom: 5px;">Plan de financement :</div>
-<div style="display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 5px;">
-<span>Apport (Fruit de vente {fmt(cash_vente_secu)}€ + Épargne {fmt(epargne_perso)}€)</span> <strong>{fmt(apport_total_secu)} €</strong>
-</div>
-<div style="display: flex; justify-content: space-between; font-size: 13px; color: #DB2777; margin-bottom: 5px;">
-<span>PTZ (Dette transférée, non soldée)</span> <strong>{fmt(crd_ptz_transfert)} €</strong>
-</div>
-<div style="display: flex; justify-content: space-between; font-size: 13px; color: #0284C7; margin-bottom: 10px;">
-<span>Nouveau Prêt Bancaire (Lissé)</span> <strong>{fmt(pv_nouveau_pret_lisse)} €</strong>
-</div>
-<div style="display: flex; justify-content: space-between; font-size: 15px; color: #0F172A; font-weight: 900; border-top: 2px solid #E2E8F0; padding-top: 5px;">
-<span>TOTAL BUDGET ACHAT</span> <span style="color: #0284C7;">{fmt(budget_achat_global)} €</span>
-</div>
-</div>
-
-<div style="margin-top: 20px; text-align: center; background-color: #F0F9FF; padding: 10px; border-radius: 6px; border: 1px dashed #3B82F6;">
-<div style="font-size: 12px; color: #0284C7; font-weight: bold;">Mensualité immédiate et définitive</div>
-<div style="font-size: 22px; font-weight: 900; color: #1E3A8A;">{fmt(mens_cible_future)} € / mois</div>
-</div>
-</div>
-"""
             with col_r1:
                 st.markdown(html_s1, unsafe_allow_html=True)
                 
-            # SCÉNARIO 2 : PRÊT RELAIS (La vraie mécanique)
-            html_s2 = f"""
-<div style="background-color: #FFFBEB; border: 2px solid #F59E0B; border-radius: 8px; padding: 20px; height: 100%;">
-<h4 style="color: #92400E; margin-top: 0; font-size: 18px;">2️⃣ Prêt Relais (Acheter avant de vendre)</h4>
-<p style="color: #B45309; font-size: 13px; margin-bottom: 20px;">La banque retient 30% de marge de sécurité. Pour combler l'apport manquant, elle "gonfle" votre prêt principal temporairement.</p>
+            # SCÉNARIO 2 : PRÊT RELAIS (Sécurisé pour éviter les NameError)
+            html_s2 = (
+                f"<div style='background-color: #FFFBEB; border: 2px solid #F59E0B; border-radius: 8px; padding: 20px; height: 100%;'>"
+                f"<h4 style='color: #92400E; margin-top: 0; font-size: 18px;'>2️⃣ Prêt Relais (Acheter avant de vendre)</h4>"
+                f"<p style='color: #B45309; font-size: 13px; margin-bottom: 20px;'>La banque retient 30% de marge de sécurité. Pour combler l'apport manquant, elle gonfle votre prêt principal temporairement.</p>"
+                f"<div style='background-color: white; border-radius: 6px; padding: 15px; border: 1px solid #FDE68A;'>"
+                f"<div style='color: #92400E; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #FDE68A; padding-bottom: 5px;'>Phase 1 : L'Achat (Avant la revente)</div>"
+                f"<div style='display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 5px;'>"
+                f"<span>Avance Relais (70%) + Épargne</span> <strong>{fmt(apport_initial_relais)} €</strong>"
+                f"</div>"
+                f"<div style='display: flex; justify-content: space-between; font-size: 13px; color: #DB2777; margin-bottom: 5px;'>"
+                f"<span>PTZ (Dette transférée)</span> <strong>{fmt(crd_ptz_transfert)} €</strong>"
+                f"</div>"
+                f"<div style='display: flex; justify-content: space-between; font-size: 13px; color: #E11D48; margin-bottom: 5px;'>"
+                f"<span>Prêt Principal temporaire (+ gros)</span> <strong>{fmt(pret_principal_temporaire)} €</strong>"
+                f"</div>"
+                f"</div>"
+                f"<div style='background-color: #FEF2F2; padding: 10px; border-radius: 6px; border: 1px dashed #EF4444; margin-top: 10px; text-align: center;'>"
+                f"<div style='font-size: 12px; color: #B91C1C; font-weight: bold;'>Effort de trésorerie pendant la vente</div>"
+                f"<div style='font-size: 22px; font-weight: 900; color: #9F1239;'>{fmt(mens_totale_phase_relais)} € / mois</div>"
+                f"<div style='font-size: 10px; color: #7F1D1D;'>(PTZ + Intérêts Relais + Prêt Gonflé)</div>"
+                f"</div>"
+                f"<div style='background-color: white; border-radius: 6px; padding: 15px; border: 1px solid #A7F3D0; margin-top: 15px;'>"
+                f"<div style='color: #065F46; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #A7F3D0; padding-bottom: 5px;'>Phase 2 : À la revente de l'ancien bien</div>"
+                f"<div style='display: flex; justify-content: space-between; font-size: 13px; color: #334155; margin-bottom: 5px;'>"
+                f"<span>Encaissement du solde (30%)</span> <strong style='color: #10B981;'>+ {fmt(solde_recupere_revente)} €</strong>"
+                f"</div>"
+                f"<div style='display: flex; justify-content: space-between; font-size: 13px; color: #334155; margin-bottom: 5px;'>"
+                f"<span>Remb. Anticipé sur Prêt Principal</span> <strong style='color: #E11D48;'>- {fmt(solde_recupere_revente)} €</strong>"
+                f"</div>"
+                f"<div style='display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; color: #065F46; margin-top: 10px; padding-top: 5px; border-top: 1px solid #E2E8F0;'>"
+                f"<span>La mensualité retombe à la cible :</span> <span>{fmt(mens_cible_future)} € / mois</span>"
+                f"</div>"
+                f"</div>"
+                f"</div>"
+            )
 
-<div style="background-color: white; border-radius: 6px; padding: 15px; border: 1px solid #FDE68A;">
-<div style="color: #92400E; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #FDE68A; padding-bottom: 5px;">Phase 1 : L'Achat (Avant la revente)</div>
-<div style="display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 5px;">
-<span>Avance Relais (70%) + Épargne</span> <strong>{fmt(apport_initial_relais)} €</strong>
-</div>
-<div style="display: flex; justify-content: space-between; font-size: 13px; color: #DB2777; margin-bottom: 5px;">
-<span>PTZ (Dette transférée)</span> <strong>{fmt(crd_ptz_transfert)} €</strong>
-</div>
-<div style="display: flex; justify-content: space-between; font-size: 13px; color: #E11D48; margin-bottom: 5px;">
-<span>Prêt Principal "Gonflé" temporairement</span> <strong>{fmt(pret_principal_temporaire)} €</strong>
-</div>
-</div>
-
-<div style="background-color: #FEF2F2; padding: 10px; border-radius: 6px; border: 1px dashed #EF4444; margin-top: 10px; text-align: center;">
-<div style="font-size: 12px; color: #B91C1C; font-weight: bold;">Effort de trésorerie pendant la vente</div>
-<div style="font-size: 22px; font-weight: 900; color: #9F1239;">{fmt(mens_totale_phase_relais)} € / mois</div>
-<div style="font-size: 10px; color: #7F1D1D;">(PTZ + Intérêts Relais + Prêt Gonflé)</div>
-</div>
-
-<div style="background-color: white; border-radius: 6px; padding: 15px; border: 1px solid #A7F3D0; margin-top: 15px;">
-<div style="color: #065F46; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #A7F3D0; padding-bottom: 5px;">Phase 2 : La Revente de l'ancien bien</div>
-<div style="display: flex; justify-content: space-between; font-size: 13px; color: #334155; margin-bottom: 5px;">
-<span>Encaissement du solde de la vente (30%)</span> <strong style="color: #10B981;">+ {fmt(solde_recupere_revente)} €</strong>
-</div>
-<div style="display: flex; justify-content: space-between; font-size: 13px; color: #334155; margin-bottom: 5px;">
-<span>Remboursement Anticipé sur Prêt Gonflé</span> <strong style="color: #E11D48;">- {fmt(solde_recupere_revente)} €</strong>
-</div>
-<div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; color: #065F46; margin-top: 10px; padding-top: 5px; border-top: 1px solid #E2E8F0;">
-<span>La mensualité retombe à la cible :</span> <span>{fmt(mens_cible_future)} € / mois</span>
-</div>
-</div>
-</div>
-"""
-            with col_res2:
+            with col_r2:
                 st.markdown(html_s2, unsafe_allow_html=True)
 
             # --- CONCLUSION PÉDAGOGIQUE ---
-            html_conclusion = f"""
-<div style="text-align: center; margin-top: 20px; background-color: #F8FAFC; border: 1px solid #CBD5E1; padding: 15px; border-radius: 8px;">
-<div style="margin: 0; font-size: 16px; font-weight: bold; color: #0F172A;">💡 Le conseil de l'Expert</div>
-<div style="margin: 5px 0 0 0; font-size: 14px; color: #334155;">
-Le prêt relais est tout à fait viable car il préserve votre PTZ. Cependant, soyez vigilant sur <b>l'effort de trésorerie transitoire ({fmt(mens_totale_phase_relais)} €/mois)</b> exigé par la banque jusqu'à la revente définitive.
-</div>
-</div>
-"""
+            html_conclusion = (
+                f"<div style='text-align: center; margin-top: 20px; background-color: #F8FAFC; border: 1px solid #CBD5E1; padding: 15px; border-radius: 8px;'>"
+                f"<div style='margin: 0; font-size: 16px; font-weight: bold; color: #0F172A;'>💡 Le conseil de l'Expert</div>"
+                f"<div style='margin: 5px 0 0 0; font-size: 14px; color: #334155;'>"
+                f"Le prêt relais est tout à fait viable car l'enveloppe d'achat finale de <b>{fmt(budget_achat_global)} €</b> est exactement identique à une vente préalable. "
+                f"Cependant, soyez très vigilant sur <b>l'effort de trésorerie transitoire ({fmt(mens_totale_phase_relais)} €/mois)</b> exigé par la banque jusqu'à la revente définitive de votre logement actuel."
+                f"</div>"
+                f"</div>"
+            )
             st.markdown(html_conclusion, unsafe_allow_html=True)
             
-            # --- GRAPHIQUE PÉDAGOGIQUE DU LISSAGE FINAL ---
+            # --- F. GRAPHIQUE PÉDAGOGIQUE DU NOUVEAU LISSAGE ---
             st.write("---")
             st.markdown("#### 📊 Fonctionnement de votre crédit définitif (Après la revente)")
-            st.write(f"Une fois le Remboursement Anticipé effectué, voici comment la banque calibrera votre nouvelle mensualité de {mens_cible_future} € : le prêt classique (en bleu) viendra parfaitement s'emboîter autour des paliers de votre PTZ conservé (en rose).")
+            st.write(f"Une fois le Remboursement Anticipé effectué suite à la revente, voici comment la banque calibrera votre nouvelle mensualité de {mens_cible_future} € : le prêt classique (en bleu) viendra parfaitement s'emboîter autour des paliers de votre PTZ conservé (en rose).")
             
             months_array = np.arange(1, duree_nouveau_pret_mois + 1)
             y_ptz_flow = np.array(ptz_flow_futur_padded)
