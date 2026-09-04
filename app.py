@@ -36,7 +36,7 @@ st.write("---")
 st.markdown("### 📝 Étape 1 : La vente de votre bien et vos crédits en cours")
 st.info("💡 Placez-vous dans la situation de votre future vente. Indiquez la valeur du bien et copiez les données de vos tableaux d'amortissement à cette date de revente.")
 
-val_estimee = st.number_input("Valeur nette vendeuse estimée de votre bien actuel (€)", min_value=0.0, step=5000.0, value=250000.0)
+val_estimee = st.number_input("ESTIMATION (FOURCHETTE BASSE) de votre logement actuel (€)", min_value=0.0, step=5000.0, value=250000.0)
 
 st.write("")
 
