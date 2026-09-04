@@ -22,7 +22,6 @@ def calc_taux_moyen(capital_total, mensualite_constante, duree_mois):
             low = mid
         else:
             high = mid
-    # Retourne directement la valeur en pourcentage (ex: 2.28)
     return (low + high) / 2
 
 # =================================================================
@@ -32,9 +31,40 @@ def calc_taux_moyen(capital_total, mensualite_constante, duree_mois):
 st.markdown('<div style="font-size: 24px; font-weight: bold; color: #1E3A8A; border-bottom: 3px solid #E91E63; padding-bottom: 5px; margin-bottom: 20px;">🔄 Anticipation : Transfert de PTZ & Prêt Relais</div>', unsafe_allow_html=True)
 st.markdown("<p style='color: #64748B; font-size: 15px;'>Découvrez le gain généré par la conservation de votre Prêt à Taux Zéro (PTZ) et comparez la mécanique d'achat entre une <b>Vente préalable</b> et un <b>Prêt Relais</b>.</p>", unsafe_allow_html=True)
 
+# --- A. ENCADRÉ PÉDAGOGIQUE (LÉGISLATION) ---
+with st.expander("📚 Les règles légales du transfert de PTZ (Service-Public.fr)", expanded=True):
+    html_regles = """
+<div style="background-color: #F8FAFC; padding: 15px; border-radius: 8px; border-left: 4px solid #3B82F6; margin-bottom: 5px;">
+<p style="font-size: 13px; color: #334155; margin-bottom: 10px;">La loi vous permet de conserver les avantages de votre Prêt à Taux Zéro en cours si vous revendez votre logement pour acheter une <b>nouvelle résidence principale</b>. Le transfert ne concerne que le <b>Capital Restant Dû (CRD)</b>. Cependant, la date de revente change tout :</p>
+
+<strong style="color: #1E3A8A; font-size: 14px;">⏳ Revente MOINS de 6 ans après le versement du PTZ</strong>
+<ul style="font-size: 13px; color: #475569; margin-top: 5px;">
+<li>Votre nouveau logement <b>doit respecter les conditions d'éligibilité au PTZ en vigueur à la date du transfert</b>.</li>
+<li><i>Exemple :</i> Pour transférer un PTZ vers un logement ancien avant 6 ans, la nouvelle maison devra impérativement se situer en zone détendue (B2 ou C), et vous devrez y réaliser au moins 25% de travaux d'amélioration. Si vous visez de l'ancien sans travaux, le transfert sera refusé par la réglementation.</li>
+</ul>
+
+<strong style="color: #10B981; font-size: 14px;">⌛ Revente PLUS de 6 ans après le versement du PTZ</strong>
+<ul style="font-size: 13px; color: #475569; margin-top: 5px; margin-bottom: 15px;">
+<li><b>Aucune condition d'éligibilité n'est exigée sur la typologie du nouveau logement !</b></li>
+<li><i>Exemple :</i> Vous pouvez acheter n'importe quel logement ancien, où vous voulez, avec ou sans travaux, et transférer votre PTZ à 0% dessus.</li>
+</ul>
+
+<strong style="color: #9333EA; font-size: 14px;">💡 Ce qui n'est PLUS contrôlé (Revenus et Primo-accession)</strong>
+<ul style="font-size: 13px; color: #475569; margin-top: 5px;">
+<li>L'article D31-10-6 du Code de la construction est clair : lors d'un transfert, <b>les plafonds de revenus (RFR) ne sont pas recalculés</b>. Même si votre salaire a fortement augmenté, vous conservez votre PTZ.</li>
+<li>La condition de <b>primo-accédant</b> n'est plus exigée non plus (logique, puisque vous revendez un bien !).</li>
+</ul>
+
+<div style="background-color: #FEF2F2; padding: 10px; border-radius: 6px; border: 1px solid #FCA5A5; font-size: 12px; color: #991B1B; margin-top: 15px;">
+<b>⚠️ Accord Bancaire :</b> Dans tous les cas, le transfert n'est pas automatique. La banque refusera l'opération si elle estime que vos nouvelles capacités de remboursement ou la garantie du nouveau bien sont insuffisantes pour absorber le nouveau prêt complémentaire.
+</div>
+</div>
+"""
+    st.markdown(html_regles, unsafe_allow_html=True)
+
 st.write("---")
 
-# --- A. SAISIE DES DONNÉES ---
+# --- B. SAISIE DES DONNÉES ---
 st.markdown("### 📝 Étape 1 : La vente de votre bien et vos crédits en cours")
 st.info("💡 Placez-vous dans la situation estimée à la date de votre future vente (ex: dans 3 ou 6 mois). Indiquez la valeur du bien et les capitaux restants dus à cette date.")
 
@@ -88,7 +118,7 @@ with col_pp:
 
 st.write("---")
 
-# --- B. LE FUTUR PROJET ---
+# --- C. LE FUTUR PROJET ---
 st.markdown("### 🎯 Étape 2 : Le futur projet (Achat)")
 
 # Mensualité actuelle indicative pour pré-remplir la cible
@@ -104,7 +134,7 @@ with col_t1:
 with col_t2:
     taux_futur = st.number_input("Taux estimé du futur crédit classique (%)", min_value=0.5, value=3.60, step=0.10)
 
-# --- C. CALCULS MATHÉMATIQUES EXPERTS ---
+# --- D. CALCULS MATHÉMATIQUES EXPERTS ---
 if len(ptz_flow_total) == 0:
     st.warning("⚠️ Vous n'avez pas saisi de durée ou de mensualité pour le PTZ. Les calculs ne peuvent pas aboutir.")
 else:
@@ -149,14 +179,13 @@ else:
             cash_transfert = val_estimee - crd_pp
             apport_transfert = cash_transfert + epargne_perso
             
-            # Le Budget d'achat, c'est l'Apport (qui contient l'argent du PTZ !) + Le nouveau prêt lissé.
+            # Le Budget d'achat, c'est l'Apport + Le nouveau prêt lissé.
             budget_achat_transfert = apport_transfert + pv_nouveau_pret_lisse
             
             # --- LE GAIN PUR (Intérêts évités par le lissage) ---
             gain_transfert_budget = budget_achat_transfert - budget_achat_soldetout
             
             # --- CALCUL DU VRAI TAUX MOYEN PONDÉRÉ LISSÉ (TRI ACTUARIEL) ---
-            # CORRECTION EFFECTUÉE ICI : On a retiré le * 100
             dette_totale_en_cours = crd_ptz_transfert + pv_nouveau_pret_lisse
             taux_moyen_transfert = calc_taux_moyen(dette_totale_en_cours, mens_cible_future, duree_nouveau_pret_mois)
 
@@ -220,7 +249,7 @@ else:
 <div style='text-align: center; margin-top: 20px; background-color: #F0F9FF; border: 2px dashed #0EA5E9; padding: 20px; border-radius: 8px;'>
 <div style='margin: 0; font-size: 24px; font-weight: 900; color: #0284C7;'>🚀 Le transfert vous fait gagner {fmt(gain_transfert_budget)} € de budget d'achat !</div>
 <div style='font-size: 13px; color: #0369A1; margin-top: 8px; margin-bottom: 15px; max-width: 800px; margin-left: auto; margin-right: auto;'>
-Ce gain ne correspond pas au capital du PTZ (qui est une dette), mais à <b>l'économie d'intérêts bancaires</b> réalisée en conservant {fmt(crd_ptz_transfert)} € à 0% au lieu de les emprunter au taux actuel. C'est du pur pouvoir d'achat récupéré pour la <b>même mensualité globale de {fmt(mens_cible_future)} €</b>.
+En conservant {fmt(crd_ptz_transfert)} € à 0% au lieu de les emprunter au taux actuel, vous faites une économie d'intérêts massive. C'est du pur pouvoir d'achat récupéré pour la <b>même mensualité globale de {fmt(mens_cible_future)} €</b>.
 </div>
 <div style='display: inline-block; background-color: white; padding: 6px 15px; border-radius: 20px; font-size: 13px; color: #0284C7; font-weight: bold; border: 1px solid #BAE6FD;'>
 📉 Taux moyen lissé de votre financement : {taux_moyen_transfert:.2f} % (au lieu de {taux_futur:.2f} %)
@@ -371,3 +400,14 @@ Ce gain ne correspond pas au capital du PTZ (qui est une dette), mais à <b>l'é
                 plot_bgcolor="white"
             )
             st.plotly_chart(fig_transf, use_container_width=True, config={'displayModeBar': False})
+
+# --- MENTIONS LÉGALES & AVERTISSEMENTS ---
+st.write("---")
+st.markdown("""
+<div style="background-color: #F1F5F9; padding: 20px; border-radius: 8px; font-size: 11px; color: #64748B; text-align: justify; border: 1px solid #E2E8F0;">
+<strong style="color: #334155; font-size: 12px;">Mentions légales & Avertissements réglementaires :</strong><br><br>
+<b>« Un crédit vous engage et doit être remboursé. Vérifiez vos capacités de remboursement avant de vous engager. »</b><br><br>
+<b>« Aucun versement de quelque nature que ce soit ne peut être exigé d'un particulier avant l'obtention d'un ou plusieurs prêts d'argent. »</b><br><br>
+<i>Clause de non-responsabilité :</i> Ce simulateur est un outil pédagogique fourni à titre strictement indicatif. Les résultats calculés dépendent des données saisies par l'utilisateur et ne constituent en <b>aucun cas une offre de prêt, un accord de principe ou un engagement contractuel</b> de la part de notre entreprise, d'un partenaire bancaire ou d'un courtier. Les conditions définitives de financement (taux, assurance, garanties, acceptation du dossier) seront établies uniquement par l'établissement prêteur après étude complète des justificatifs.
+</div>
+""", unsafe_allow_html=True)
