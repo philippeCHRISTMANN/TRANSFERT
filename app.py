@@ -29,100 +29,102 @@ with st.expander("📚 Rappel : Les règles du transfert de PTZ", expanded=False
 st.write("---")
 
 # --- B. SAISIE DES DONNÉES ACTUELLES PAR LE CLIENT ---
-st.markdown("### 📝 Étape 1 : Vos crédits actuels")
+st.markdown("### 📝 Étape 1 : Vos crédits immobiliers actuels")
+st.info("💡 Prenez vos tableaux d'amortissement et regardez la ligne correspondant à **dans 3 mois** (date estimée de la vente chez le notaire).")
 
-# Saisie de la donnée globale du projet
-col_g1, col_g2 = st.columns(2)
-with col_g1:
-    mensualite_globale_actuelle = st.number_input("Quelle est votre mensualité globale actuelle ? (Tous prêts confondus, en €)", min_value=100.0, value=1000.0, step=50.0, help="Regardez combien vous êtes prélevé chaque mois par la banque au total.")
-with col_g2:
-    duree_totale_globale = st.number_input("Durée totale de votre financement (en mois)", min_value=12, value=300, step=12)
+col_ptz, col_pp = st.columns(2)
 
-st.write("")
-st.markdown("#### 🟣 Reconstitution de votre Prêt à Taux Zéro (PTZ)")
-st.info("💡 Saisissez le montant de votre PTZ. Nous allons calculer automatiquement les paliers restants pour vous éviter les erreurs de saisie !")
-
-col_p1, col_p2 = st.columns(2)
-with col_p1:
-    capital_ptz = st.number_input("Montant total emprunté sur le PTZ (€)", min_value=1000.0, value=60000.0, step=1000.0)
-with col_p2:
-    duree_ptz = st.number_input("Durée de votre PTZ (en mois)", min_value=12, value=300, step=12)
-
-is_constant_ptz = st.radio(
-    "Les mensualités du PTZ sont-elles constantes ?",
-    ("Oui, toujours la même mensualité", "Non, il y a des paliers (ex: 0€ pendant X mois, puis Y€)"),
-    key="radio_ptz"
-)
-
-ptz_flow_total = []
-
-if is_constant_ptz.startswith("Oui"):
-    mens_ptz = capital_ptz / duree_ptz
-    st.success(f"✨ **Calcul automatique :** Votre mensualité de PTZ est de **{mens_ptz:.2f} € / mois**.")
-    ptz_flow_total = [mens_ptz] * int(duree_ptz)
-else:
-    nb_paliers_ptz = st.number_input("Combien de paliers comporte votre PTZ ?", min_value=2, max_value=4, value=2, key="nb_pal_ptz")
+# ----- 1.A : LE PRÊT À TAUX ZÉRO -----
+with col_ptz:
+    st.markdown("#### 🟣 Votre Prêt à Taux Zéro (PTZ)")
+    crd_ptz = st.number_input("Capital Restant Dû PTZ (à +3 mois) en €", min_value=0.0, step=1000.0, value=40000.0)
     
-    duree_cumulee = 0
-    capital_rembourse = 0
+    is_constant_ptz = st.radio(
+        "Les mensualités RESTANTES du PTZ sont-elles constantes ?",
+        ("Oui, toujours la même", "Non, il y a des paliers"),
+        key="radio_ptz"
+    )
     
-    for i in range(int(nb_paliers_ptz)):
-        # Pour tous les paliers SAUF le dernier : l'utilisateur saisit
-        if i < int(nb_paliers_ptz) - 1:
-            st.markdown(f"**Palier {i+1}**")
+    ptz_flow_total = []
+    
+    if is_constant_ptz.startswith("Oui"):
+        duree_ptz = st.number_input("Mensualités RESTANTES du PTZ", min_value=1, step=12, value=204)
+        # Calcul automatique de la mensualité du PTZ (puisque le taux est à 0%)
+        mens_ptz = crd_ptz / duree_ptz if duree_ptz > 0 else 0
+        st.info(f"Mensualité calculée : **{mens_ptz:.2f} € / mois**")
+        ptz_flow_total = [mens_ptz] * int(duree_ptz)
+    else:
+        nb_paliers_ptz = st.number_input("Nombre de paliers RESTANTS du PTZ", min_value=1, max_value=6, value=2, key="nb_pal_ptz")
+        for i in range(int(nb_paliers_ptz)):
             c1, c2 = st.columns(2)
             with c1:
-                dur_p = st.number_input(f"Durée du Palier {i+1} (en mois)", min_value=1, step=12, value=180 if i==0 else 120, key=f"ptz_dur_{i}")
+                dur_p = st.number_input(f"Durée Palier {i+1} (mois)", min_value=1, step=12, value=120 if i==0 else 84, key=f"ptz_dur_{i}")
             with c2:
-                men_p = st.number_input(f"Mensualité du Palier {i+1} (€)", min_value=0.0, step=10.0, value=0.0 if i==0 else 200.0, key=f"ptz_mens_{i}")
-            
+                men_p = st.number_input(f"Mensualité Palier {i+1} (€)", min_value=0.0, step=10.0, value=0.0 if i==0 else 200.0, key=f"ptz_mens_{i}")
             ptz_flow_total.extend([men_p] * int(dur_p))
-            duree_cumulee += dur_p
-            capital_rembourse += (men_p * dur_p)
-            
-        # Pour le DERNIER palier : le robot calcule tout seul
-        else:
-            st.markdown(f"**Palier {i+1} (Calculé automatiquement)**")
-            dur_restante = duree_ptz - duree_cumulee
-            capital_restant = capital_ptz - capital_rembourse
-            
-            if dur_restante <= 0:
-                st.error("⚠️ Attention, la somme des durées de vos premiers paliers dépasse ou annule la durée totale de votre prêt.")
-            elif capital_restant < 0:
-                st.error("⚠️ Attention, vous avez saisi des mensualités trop élevées : le capital est déjà totalement remboursé avant le dernier palier.")
-            else:
-                men_p = capital_restant / dur_restante
-                st.success(f"✨ **Dernier palier déduit :** Il vous restera **{int(dur_restante)} mois** à payer **{men_p:.2f} € / mois**.")
-                ptz_flow_total.extend([men_p] * int(dur_restante))
 
-# --- DÉDUCTION DU PRÊT PRINCIPAL ---
-st.markdown("#### 🔵 Votre Prêt Principal")
-st.info("🪄 **Magie du Lissage :** Inutile de saisir les données complexes de votre Prêt Principal ! Puisque votre financement initial est lissé, notre outil déduit mathématiquement les paliers de votre Prêt Principal en soustrayant le PTZ de votre mensualité globale.")
+# ----- 1.B : LE PRÊT PRINCIPAL -----
+with col_pp:
+    st.markdown("#### 🔵 Votre Prêt Principal")
+    crd_pp = st.number_input("Capital Restant Dû Prêt Principal (à +3 mois) en €", min_value=0.0, step=1000.0, value=150000.0)
+    
+    is_constant_pp = st.radio(
+        "Les mensualités RESTANTES du Prêt Principal sont-elles constantes ?",
+        ("Oui, toujours la même", "Non, il y a des paliers"),
+        key="radio_pp"
+    )
+    
+    pp_flow_total = []
+    
+    if is_constant_pp.startswith("Oui"):
+        mens_pp = st.number_input("Mensualité hors assurance Prêt Principal (€)", min_value=0.0, step=10.0, value=850.0)
+        duree_pp = st.number_input("Mensualités RESTANTES Prêt Principal", min_value=1, step=12, value=204)
+        pp_flow_total = [mens_pp] * int(duree_pp)
+    else:
+        nb_paliers_pp = st.number_input("Nombre de paliers RESTANTS du Prêt Principal", min_value=1, max_value=6, value=2, key="nb_pal_pp")
+        for i in range(int(nb_paliers_pp)):
+            c1, c2 = st.columns(2)
+            with c1:
+                dur_p = st.number_input(f"Durée Palier {i+1} (mois)", min_value=1, step=12, value=120 if i==0 else 84, key=f"pp_dur_{i}")
+            with c2:
+                men_p = st.number_input(f"Mensualité Palier {i+1} (€)", min_value=0.0, step=10.0, value=1000.0 if i==0 else 800.0, key=f"pp_mens_{i}")
+            pp_flow_total.extend([men_p] * int(dur_p))
 
-# On allonge le tableau PTZ avec des zéros si la durée globale est plus longue que le PTZ
-if len(ptz_flow_total) < duree_totale_globale:
-    ptz_flow_total.extend([0] * (int(duree_totale_globale) - len(ptz_flow_total)))
+# --- CALCUL DE L'EFFORT ACTUEL GLOBAL ---
+# On aligne la taille des deux tableaux pour les additionner mois par mois
+max_len_actuel = max(len(ptz_flow_total), len(pp_flow_total))
+ptz_padded_actuel = ptz_flow_total + [0] * (max_len_actuel - len(ptz_flow_total))
+pp_padded_actuel = pp_flow_total + [0] * (max_len_actuel - len(pp_flow_total))
 
-# Calcul du flux du prêt principal
-pp_flow_total = [max(0, mensualite_globale_actuelle - p) for p in ptz_flow_total]
+total_mensualite_actuelle = [p + m for p, m in zip(ptz_padded_actuel, pp_padded_actuel)]
+mensualite_lisse_moyenne = int(max(total_mensualite_actuelle)) if total_mensualite_actuelle else 1000
+
+st.markdown(f"""
+<div style="text-align: center; background-color: #F1F5F9; padding: 10px; border-radius: 8px; margin-top: 10px; border: 1px solid #CBD5E1;">
+    <span style="color: #475569; font-size: 14px;">Votre mensualité globale actuelle est d'environ :</span> 
+    <strong style="color: #0F172A; font-size: 18px;">{mensualite_lisse_moyenne} € / mois</strong>
+</div>
+""", unsafe_allow_html=True)
 
 st.write("---")
 
 # --- C. LE FUTUR PROJET (LA REVENTE) ---
 st.markdown("### 🎯 Étape 2 : Votre futur projet (Revente & Rachat)")
+st.write("Lors de la revente, votre Prêt Principal sera soldé. Seul le PTZ sera transféré sur la nouvelle acquisition.")
 
 col_t1, col_t2, col_t3 = st.columns(3)
 with col_t1:
-    annee_revente = st.slider("Revente dans combien d'années ?", min_value=1, max_value=25, value=7)
+    # Changement ici : on permet la valeur "0" pour un projet de revente immédiat
+    annee_revente = st.slider("Revente dans combien d'années (0 = projet immédiat) ?", min_value=0, max_value=25, value=0)
 with col_t2:
-    mens_cible_future = st.number_input("Mensualité cible du futur projet (€)", min_value=100.0, value=float(mensualite_globale_actuelle), step=50.0, help="Nous reprenons par défaut votre mensualité actuelle pour comparer à effort égal.")
+    mens_cible_future = st.number_input("Mensualité cible pour le futur projet (€)", min_value=100, value=mensualite_lisse_moyenne, step=50, help="Nous reprenons par défaut votre mensualité actuelle.")
 with col_t3:
     taux_futur = st.number_input("Taux estimé du futur crédit classique (%)", min_value=0.5, value=4.0, step=0.10)
 
 # --- D. CALCULS DU TRANSFERT ET DU NOUVEAU LISSAGE ---
 mois_revente = annee_revente * 12
 
-if mois_revente >= len(ptz_flow_total):
+if mois_revente >= len(ptz_flow_total) and len(ptz_flow_total) > 0:
     st.warning(f"⚠️ Dans {annee_revente} ans, votre Prêt à Taux Zéro sera déjà intégralement remboursé. Il n'y aura donc rien à transférer.")
 else:
     # 1. Ce qu'il reste du PTZ à la date de revente
@@ -132,7 +134,7 @@ else:
     if crd_ptz_transfert <= 0:
         st.warning("Le capital restant dû de votre PTZ sera de 0 €. Le transfert est sans objet.")
     else:
-        duree_nouveau_pret_mois = 300 # Prêt classique futur sur 25 ans standard
+        duree_nouveau_pret_mois = 300 # Prêt classique futur sur 25 ans
         tm_futur = taux_futur / 100 / 12
         
         # SCÉNARIO 1 : SANS TRANSFERT
@@ -146,7 +148,7 @@ else:
         max_ptz_flow = max(ptz_flow_futur_padded)
         
         if mens_cible_future <= max_ptz_flow:
-            st.error(f"❌ Votre mensualité cible ({mens_cible_future} €) est trop faible pour absorber l'échéance du PTZ qu'il vous restera à rembourser ({max_ptz_flow:.0f} €/m). Augmentez votre mensualité cible.")
+            st.error(f"❌ Votre mensualité cible ({mens_cible_future} €) est trop faible pour absorber l'échéance du PTZ conservé ({max_ptz_flow:.0f} €/m). Augmentez votre mensualité cible.")
         else:
             pv_nouveau_pret = 0
             if tm_futur > 0:
@@ -164,7 +166,6 @@ else:
             <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 15px;">
                 <div style="color: #64748B !important; font-size: 13px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase;">Capital PTZ transféré (à {annee_revente} ans)</div>
                 <div style="color: #0F172A !important; font-size: 24px; font-weight: 900; margin: 0;">{crd_ptz_transfert:,.0f} €</div>
-                <div style="color: #475569 !important; font-size: 12px; margin-top: 5px;">(C'est l'argent à 0% que vous ne rendez pas à la banque lors de la vente)</div>
             </div>
             """.replace(',', ' ')
             st.markdown(html_kpi_1, unsafe_allow_html=True)
