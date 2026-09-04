@@ -29,12 +29,12 @@ def calc_taux_moyen(capital_total, mensualite_constante, duree_mois):
 # =================================================================
 
 st.markdown('<div style="font-size: 24px; font-weight: bold; color: #1E3A8A; border-bottom: 3px solid #E91E63; padding-bottom: 5px; margin-bottom: 20px;">🔄 Anticipation : Transfert de PTZ & Prêt Relais</div>', unsafe_allow_html=True)
-st.markdown("<p style='color: #64748B; font-size: 15px;'>Découvrez le gain généré par la conservation de votre Prêt à Taux Zéro (PTZ) et comparez la mécanique d'achat entre une <b>Vente préalable</b> et un <b>Prêt Relais</b>.</p>", unsafe_allow_html=True)
+st.markdown("<p style='color: #64748B; font-size: 15px;'>Découvrez le gain généré par la conservation de votre Prêt à Taux Zéro (PTZ), puis comparez la mécanique d'achat entre une <b>Vente préalable</b> et un <b>Prêt Relais</b>.</p>", unsafe_allow_html=True)
 
 st.write("---")
 
 # --- A. SAISIE DES DONNÉES ---
-st.markdown("### 📝 Étape 1 : La vente de votre bien et vos crédits en cours")
+st.markdown("### 📝 Étape 1 : Votre bien actuel et le futur projet")
 st.info("💡 Placez-vous dans la situation estimée à la date de votre future vente (ex: dans 3 ou 6 mois). Indiquez la valeur du bien et les capitaux restants dus à cette date.")
 
 col_v1, col_v2 = st.columns(2)
@@ -86,9 +86,7 @@ with col_pp:
             pp_flow_total.extend([men_p] * int(dur_p))
 
 st.write("---")
-
-# --- B. LE FUTUR PROJET ---
-st.markdown("### 🎯 Étape 2 : Votre futur projet (Achat)")
+st.markdown("### 🎯 Le futur projet (Achat)")
 
 # Mensualité actuelle indicative pour pré-remplir la cible
 max_len_actuel = max(len(ptz_flow_total), len(pp_flow_total))
@@ -103,29 +101,39 @@ with col_t1:
 with col_t2:
     taux_futur = st.number_input("Taux estimé du futur crédit classique (%)", min_value=0.5, value=4.0, step=0.10)
 
-# --- C. CALCULS MATHÉMATIQUES EXPERTS ---
-if len(ptz_flow_total) > 0:
+# =================================================================
+# CALCULS MATHÉMATIQUES EXPERTS
+# =================================================================
+if len(ptz_flow_total) == 0:
+    st.warning("⚠️ Saisissez les informations du PTZ pour lancer l'analyse.")
+else:
     crd_ptz_transfert = sum(ptz_flow_total)
     
-    if crd_ptz_transfert > 0:
+    if crd_ptz_transfert <= 0:
+        st.warning("Le capital restant dû de votre PTZ est de 0 €. Le transfert est sans objet.")
+    else:
         duree_nouveau_pret_mois = 300 # 25 ans
         tm_futur = taux_futur / 100 / 12
         
-        # 1. SCÉNARIO : ON SOLDE TOUT (Classique)
-        apport_soldetout = max(0, val_estimee - crd_pp - crd_ptz_transfert) + epargne_perso
+        # -------------------------------------------------------------
+        # SCÉNARIO A : ON SOLDE TOUT ET ON REPART DE ZÉRO
+        # -------------------------------------------------------------
+        cash_soldetout = max(0, val_estimee - crd_pp - crd_ptz_transfert)
+        apport_soldetout = cash_soldetout + epargne_perso
         if tm_futur > 0:
             capa_bancaire_soldetout = mens_cible_future * ((1 - (1+tm_futur)**-duree_nouveau_pret_mois) / tm_futur)
         else:
             capa_bancaire_soldetout = mens_cible_future * duree_nouveau_pret_mois
         budget_achat_soldetout = apport_soldetout + capa_bancaire_soldetout
         
-        # 2. SCÉNARIO : TRANSFERT DU PTZ
+        # -------------------------------------------------------------
+        # SCÉNARIO B : ON TRANSFÈRE LE PTZ (LISSAGE)
+        # -------------------------------------------------------------
         ptz_flow_futur_padded = ptz_flow_total + [0] * (duree_nouveau_pret_mois - len(ptz_flow_total)) if len(ptz_flow_total) < duree_nouveau_pret_mois else ptz_flow_total[:duree_nouveau_pret_mois]
         
         if mens_cible_future <= max(ptz_flow_futur_padded):
-            st.error(f"❌ Mensualité cible ({mens_cible_future} €) trop faible pour absorber l'échéance du PTZ conservé.")
+            st.error(f"❌ Mensualité cible ({mens_cible_future} €) trop faible pour absorber l'échéance de votre PTZ.")
         else:
-            # Calcul capacité nouveau prêt lissé
             pv_nouveau_pret_lisse = 0
             if tm_futur > 0:
                 for m in range(1, duree_nouveau_pret_mois + 1):
@@ -134,112 +142,148 @@ if len(ptz_flow_total) > 0:
             else:
                 pv_nouveau_pret_lisse = sum((mens_cible_future - p) for p in ptz_flow_futur_padded)
             
-            # --- CALCULS VENTE vs RELAIS (Avec Transfert PTZ) ---
+            # Le cash net de la vente (Puisqu'on transfère le PTZ, on ne rembourse que le prêt principal)
+            cash_transfert = max(0, val_estimee - crd_pp)
+            apport_transfert = cash_transfert + epargne_perso
             
-            # Cas A : Vente préalable
-            # On ne déduit PAS le PTZ. Le cash issu de la vente contient donc "physiquement" la valeur du PTZ.
-            cash_vente_secu = max(0, val_estimee - crd_pp)
-            apport_total_secu = cash_vente_secu + epargne_perso
-            # Le budget d'achat, c'est l'apport cash + le nouveau prêt lissé (le PTZ est déjà dans l'apport cash !)
-            budget_achat_transfert = apport_total_secu + pv_nouveau_pret_lisse
+            budget_achat_transfert = apport_transfert + pv_nouveau_pret_lisse
             
-            # --- CALCUL DU VRAI TAUX MOYEN PONDÉRÉ (TRI) ---
-            # La dette réelle portée par le client est le Nouveau Prêt + le PTZ conservé
+            # --- GAIN ET TAUX MOYEN ---
+            gain_transfert_budget = budget_achat_transfert - budget_achat_soldetout
             dette_totale_en_cours = crd_ptz_transfert + pv_nouveau_pret_lisse
             taux_moyen_transfert = calc_taux_moyen(dette_totale_en_cours, mens_cible_future, duree_nouveau_pret_mois)
-            
-            # Cas B : Prêt Relais (70% retenu)
-            avance_relais = max(0, (val_estimee * 0.70) - crd_pp)
-            apport_initial_relais = avance_relais + epargne_perso
-            # On gonfle le prêt principal pour atteindre le même budget d'achat
-            pret_principal_temporaire = budget_achat_transfert - apport_initial_relais
-            
-            # À la revente : récupération du solde (les 30% restants nets du prêt principal)
-            solde_recupere_revente = cash_vente_secu - avance_relais
-            
-            # --- LE GAIN DU TRANSFERT ---
-            gain_transfert_budget = budget_achat_transfert - budget_achat_soldetout
 
+            # ==========================================
+            # PARTIE 1 : L'AVANTAGE DU TRANSFERT (LE BUDGET)
+            # ==========================================
             st.write("---")
+            st.markdown("### 🏆 Étape 2 : Faut-il conserver votre PTZ ?")
             
-            # ==========================================
-            # 🏆 ENCADRÉ : LE GAIN DU TRANSFERT DE PTZ
-            # ==========================================
-            html_gain = f"""
-<div style='text-align: center; margin-top: 10px; margin-bottom: 25px; background-color: #F0FDF4; border: 2px dashed #10B981; padding: 20px; border-radius: 8px;'>
-<div style='margin: 0; font-size: 14px; font-weight: 700; color: #065F46; text-transform: uppercase;'>Le pouvoir de la conservation de votre PTZ</div>
-<div style='margin: 5px 0; font-size: 28px; font-weight: 900; color: #047857;'>+ {fmt(gain_transfert_budget)} € de budget d'achat !</div>
-<div style='font-size: 13px; color: #065F46; margin-bottom: 12px;'>
-Par rapport à une situation où vous solderiez tous vos crédits pour repartir de zéro, le simple fait de <b>transférer votre PTZ</b> (taux à 0%) sur le nouveau bien vous offre cette enveloppe supplémentaire pour la <b>même mensualité de {fmt(mens_cible_future)} €</b>.
+            col_b1, col_b2 = st.columns(2)
+            
+            html_b1 = f"""
+<div style='background-color: #FFF1F2; border: 2px solid #FECDD3; border-radius: 8px; padding: 20px; height: 100%;'>
+<h4 style='color: #9F1239; margin-top: 0;'>❌ Si vous soldez tous vos crédits</h4>
+<p style='color: #BE123C; font-size: 13px; margin-bottom: 20px;'>Vous remboursez le Prêt Principal ET le PTZ lors de la vente. Vous repartez avec un nouveau crédit unique à {taux_futur} %.</p>
+<div style='background-color: white; border-radius: 6px; padding: 15px; border: 1px solid #FECDD3;'>
+<div style='display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 5px;'>
+<span>Fruit de la vente (Net des 2 crédits)</span> <strong>{fmt(cash_soldetout)} €</strong>
 </div>
-<div style='display: inline-block; background-color: #D1FAE5; padding: 8px 15px; border-radius: 20px; font-size: 13px; color: #065F46; font-weight: bold; border: 1px solid #34D399;'>
-📉 Taux moyen réel de votre nouveau financement : {taux_moyen_transfert:.2f} % (au lieu de {taux_futur:.2f} %)
+<div style='display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 5px;'>
+<span>Épargne personnelle</span> <strong>{fmt(epargne_perso)} €</strong>
+</div>
+<div style='display: flex; justify-content: space-between; font-size: 13px; color: #E11D48; margin-bottom: 10px;'>
+<span>Nouveau Prêt Bancaire à {taux_futur}%</span> <strong>{fmt(capa_bancaire_soldetout)} €</strong>
+</div>
+<div style='display: flex; justify-content: space-between; font-size: 15px; color: #9F1239; font-weight: 900; border-top: 2px solid #FECDD3; padding-top: 5px;'>
+<span>BUDGET D'ACHAT MAXIMAL</span> <span>{fmt(budget_achat_soldetout)} €</span>
+</div>
 </div>
 </div>
 """
-            st.markdown(html_gain, unsafe_allow_html=True)
-
-            # ==========================================
-            # ⚖️ COMPARATIF STRATÉGIQUE (VENTE VS RELAIS)
-            # ==========================================
-            st.markdown("### ⚖️ Comment financer cette acquisition ?")
-            st.markdown(f"<p style='color: #475569; font-size: 14px;'>Votre budget d'achat avec PTZ transféré s'élève à <b>{fmt(budget_achat_transfert)} €</b>. Voici comment se déroule le plan de financement selon que vous vendez avant, ou après.</p>", unsafe_allow_html=True)
-            
-            col_res1, col_res2 = st.columns(2)
-            
-            # --- SCÉNARIO 1 : VENTE D'ABORD ---
-            html_s1 = f"""
-<div style='background-color: #F8FAFC; border: 2px solid #3B82F6; border-radius: 8px; padding: 20px; height: 100%; position: relative;'>
-<div style='position: absolute; top: -12px; right: 20px; background-color: #3B82F6; color: white; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px;'>LE PLUS SÉCURISÉ</div>
-<h4 style='color: #1E3A8A; margin-top: 0; font-size: 18px;'>1️⃣ Vendre d'abord (Sans Relais)</h4>
-<p style='color: #334155; font-size: 13px; margin-bottom: 20px;'>Vous encaissez directement 100% de la vente. Le plan de financement est définitif dès la signature.</p>
-
-<div style='background-color: white; border-radius: 6px; padding: 15px; border: 1px solid #BFDBFE;'>
-<div style='color: #1E3A8A; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #BFDBFE; padding-bottom: 5px;'>Plan de financement du projet :</div>
-<div style='display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 5px;' title='Contient la valeur équivalente de votre PTZ, qui n a pas été remboursé au notaire.'>
-<span>Fruit de la vente encaissé</span> <strong>{fmt(cash_vente_secu)} €</strong>
+            with col_b1:
+                st.markdown(html_b1, unsafe_allow_html=True)
+                
+            html_b2 = f"""
+<div style='background-color: #ECFDF5; border: 2px solid #10B981; border-radius: 8px; padding: 20px; height: 100%; position: relative;'>
+<div style='position: absolute; top: -12px; right: 20px; background-color: #10B981; color: white; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px;'>LA BONNE STRATÉGIE</div>
+<h4 style='color: #065F46; margin-top: 0;'>✅ Si vous transférez le PTZ</h4>
+<p style='color: #047857; font-size: 13px; margin-bottom: 20px;'>Vous ne remboursez pas le PTZ au notaire. La banque crée un nouveau prêt qui s'emboîte autour des mensualités du PTZ.</p>
+<div style='background-color: white; border-radius: 6px; padding: 15px; border: 1px solid #A7F3D0;'>
+<div style='display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 5px;'>
+<span>Fruit de la vente (Seul le prêt principal est soldé)</span> <strong>{fmt(cash_transfert)} €</strong>
 </div>
 <div style='display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 5px;'>
 <span>Épargne personnelle</span> <strong>{fmt(epargne_perso)} €</strong>
 </div>
 <div style='display: flex; justify-content: space-between; font-size: 13px; color: #0284C7; margin-bottom: 10px;'>
-<span>Nouveau Prêt Bancaire (Lissé)</span> <strong>{fmt(pv_nouveau_pret_lisse)} €</strong>
+<span>Nouveau Prêt Bancaire (Lissé) à {taux_futur}%</span> <strong>{fmt(pv_nouveau_pret_lisse)} €</strong>
 </div>
-<div style='display: flex; justify-content: space-between; font-size: 15px; color: #0F172A; font-weight: 900; border-top: 2px solid #E2E8F0; padding-top: 5px;'>
-<span>TOTAL BUDGET ACHAT</span> <span style='color: #0284C7;'>{fmt(budget_achat_transfert)} €</span>
+<div style='display: flex; justify-content: space-between; font-size: 15px; color: #059669; font-weight: 900; border-top: 2px solid #A7F3D0; padding-top: 5px;'>
+<span>BUDGET D'ACHAT MAXIMAL</span> <span>{fmt(budget_achat_transfert)} €</span>
 </div>
-</div>
-
-<div style='margin-top: 20px; text-align: center; background-color: #F0F9FF; padding: 10px; border-radius: 6px; border: 1px dashed #3B82F6;'>
-<div style='font-size: 12px; color: #0284C7; font-weight: bold;'>Mensualité immédiate et définitive</div>
-<div style='font-size: 22px; font-weight: 900; color: #1E3A8A;'>{fmt(mens_cible_future)} € / mois</div>
-<div style='font-size: 10px; color: #475569;'>(PTZ transféré + Nouveau Prêt Lissé)</div>
 </div>
 </div>
 """
-            with col_res1:
+            with col_b2:
+                st.markdown(html_b2, unsafe_allow_html=True)
+
+            html_gain = f"""
+<div style='text-align: center; margin-top: 20px; background-color: #F0F9FF; border: 2px dashed #0EA5E9; padding: 15px; border-radius: 8px;'>
+<div style='margin: 0; font-size: 22px; font-weight: 900; color: #0284C7;'>🚀 Le transfert vous fait gagner {fmt(gain_transfert_budget)} € de budget d'achat !</div>
+<div style='font-size: 14px; color: #0369A1; margin-top: 5px; margin-bottom: 10px;'>Pour la <b>même mensualité de {fmt(mens_cible_future)} €</b>, le transfert fait baisser le coût de votre crédit.</div>
+<div style='display: inline-block; background-color: white; padding: 6px 15px; border-radius: 20px; font-size: 13px; color: #0284C7; font-weight: bold; border: 1px solid #BAE6FD;'>
+📉 Taux moyen lissé de votre financement : {taux_moyen_transfert:.2f} % (au lieu de {taux_futur:.2f} %)
+</div>
+</div>
+"""
+            st.markdown(html_gain, unsafe_allow_html=True)
+
+
+            # ==========================================
+            # PARTIE 2 : LA LOGISTIQUE (VENTE VS RELAIS)
+            # ==========================================
+            st.write("---")
+            st.markdown("### ⚖️ Étape 3 : La logistique de transition (Acheter ou Vendre en premier ?)")
+            st.markdown(f"<p style='color: #475569; font-size: 14px;'>Maintenant que nous avons validé le transfert du PTZ (budget d'achat : <b>{fmt(budget_achat_transfert)} €</b>), comment gérer la transition ? Voici l'impact du Prêt Relais.</p>", unsafe_allow_html=True)
+            
+            # --- Calculs Prêt Relais ---
+            avance_relais = max(0, (val_estimee * 0.70) - crd_pp)
+            apport_initial_relais = avance_relais + epargne_perso
+            pret_principal_temporaire = budget_achat_transfert - apport_initial_relais
+            solde_recupere_revente = cash_transfert - avance_relais 
+            
+            col_r1, col_r2 = st.columns(2)
+            
+            # SCÉNARIO 1 : VENTE D'ABORD
+            html_s1 = f"""
+<div style='background-color: #F8FAFC; border: 2px solid #94A3B8; border-radius: 8px; padding: 20px; height: 100%;'>
+<h4 style='color: #334155; margin-top: 0; font-size: 18px;'>1️⃣ Vendre d'abord (Sans Relais)</h4>
+<p style='color: #475569; font-size: 13px; margin-bottom: 20px;'>Vous vendez avant d'acheter (ou mettez une condition suspensive de vente). Vous encaissez directement 100% du fruit de la vente net du prêt principal.</p>
+
+<div style='background-color: white; border-radius: 6px; padding: 15px; border: 1px solid #E2E8F0;'>
+<div style='color: #334155; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #E2E8F0; padding-bottom: 5px;'>Montage financier le jour de l'achat :</div>
+<div style='display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 5px;'>
+<span>Apport (Vente 100% encaissée + Épargne)</span> <strong>{fmt(apport_transfert)} €</strong>
+</div>
+<div style='display: flex; justify-content: space-between; font-size: 13px; color: #0284C7; margin-bottom: 10px;'>
+<span>Nouveau Prêt Bancaire (Définitif)</span> <strong>{fmt(pv_nouveau_pret_lisse)} €</strong>
+</div>
+<div style='display: flex; justify-content: space-between; font-size: 15px; color: #0F172A; font-weight: 900; border-top: 2px solid #E2E8F0; padding-top: 5px;'>
+<span>BUDGET D'ACHAT FINAL</span> <span>{fmt(budget_achat_transfert)} €</span>
+</div>
+</div>
+
+<div style='margin-top: 20px; text-align: center; background-color: #F1F5F9; padding: 10px; border-radius: 6px;'>
+<div style='font-size: 12px; color: #475569; font-weight: bold;'>Mensualité immédiate et définitive</div>
+<div style='font-size: 22px; font-weight: 900; color: #1E293B;'>{fmt(mens_cible_future)} € / mois</div>
+<div style='font-size: 10px; color: #64748B;'>(PTZ transféré + Nouveau Prêt)</div>
+</div>
+</div>
+"""
+            with col_r1:
                 st.markdown(html_s1, unsafe_allow_html=True)
                 
-            # --- SCÉNARIO 2 : PRÊT RELAIS ---
+            # SCÉNARIO 2 : PRÊT RELAIS
             html_s2 = f"""
 <div style='background-color: #FFFBEB; border: 2px solid #F59E0B; border-radius: 8px; padding: 20px; height: 100%;'>
 <h4 style='color: #92400E; margin-top: 0; font-size: 18px;'>2️⃣ Prêt Relais (Acheter avant de vendre)</h4>
-<p style='color: #B45309; font-size: 13px; margin-bottom: 20px;'>La banque retient une décote (70%). Pour combler l'apport manquant à l'achat, on <b>gonfle temporairement le prêt principal</b>.</p>
+<p style='color: #B45309; font-size: 13px; margin-bottom: 20px;'>La banque retient 30% de marge de sécurité. Pour combler l'apport manquant à l'achat, on <b>gonfle temporairement le prêt principal</b>.</p>
 
 <div style='background-color: white; border-radius: 6px; padding: 15px; border: 1px solid #FDE68A;'>
 <div style='color: #92400E; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #FDE68A; padding-bottom: 5px;'>Phase 1 : L'Achat (Avant la revente)</div>
 <div style='display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 5px;'>
 <span>Avance Relais (70%) + Épargne</span> <strong>{fmt(apport_initial_relais)} €</strong>
 </div>
-<div style='display: flex; justify-content: space-between; font-size: 13px; color: #E11D48; margin-bottom: 10px;' title='Il englobe le capital du nouveau prêt ET les 30% d apport manquants (dont le PTZ).'>
+<div style='display: flex; justify-content: space-between; font-size: 13px; color: #E11D48; margin-bottom: 10px;' title='Sera réduit lors de la revente.'>
 <span>Nouveau Prêt Principal (Sur-gonflé)</span> <strong>{fmt(pret_principal_temporaire)} €</strong>
 </div>
 <div style='display: flex; justify-content: space-between; font-size: 15px; color: #0F172A; font-weight: 900; border-top: 2px solid #E2E8F0; padding-top: 5px;'>
-<span>TOTAL BUDGET ACHAT</span> <span style='color: #D97706;'>{fmt(budget_achat_transfert)} €</span>
+<span>BUDGET D'ACHAT ATTEINT</span> <span style='color: #D97706;'>{fmt(budget_achat_transfert)} €</span>
 </div>
 </div>
 """
-            with col_res2:
+            with col_r2:
                 # Affichage du haut de la carte
                 st.markdown(html_s2, unsafe_allow_html=True)
                 
@@ -285,10 +329,11 @@ Par rapport à une situation où vous solderiez tous vos crédits pour repartir 
 """
                 st.markdown(html_s2_footer, unsafe_allow_html=True)
 
+
             # --- F. GRAPHIQUE PÉDAGOGIQUE DU NOUVEAU LISSAGE ---
             st.write("---")
             st.markdown("#### 📊 Fonctionnement de votre crédit définitif (Après la revente)")
-            st.write(f"Une fois l'ancien bien vendu et le Remboursement Anticipé effectué, voici comment la banque calibrera votre nouvelle mensualité cible de {mens_cible_future} € : le prêt classique (en bleu) viendra parfaitement s'emboîter autour des paliers de votre PTZ conservé (en rose).")
+            st.write(f"Une fois l'ancien bien vendu et le Remboursement Anticipé partiel effectué, le prêt principal se dégonfle. Voici comment la banque calibrera votre nouvelle mensualité cible de {mens_cible_future} € : le prêt classique (en bleu) viendra parfaitement s'emboîter autour des paliers de votre PTZ conservé (en rose).")
             
             months_array = np.arange(1, duree_nouveau_pret_mois + 1)
             y_ptz_flow = np.array(ptz_flow_futur_padded)
