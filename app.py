@@ -5,6 +5,7 @@ import numpy as np
 # Configuration de la page
 st.set_page_config(page_title="Simulateur Transfert PTZ & Stratégie Revente", layout="wide")
 
+# Fonction utilitaire pour formater les euros proprement (sans erreur d'affichage Streamlit)
 def fmt(n):
     return f"{n:,.0f}".replace(",", " ")
 
@@ -25,7 +26,7 @@ col_v1, col_v2 = st.columns(2)
 with col_v1:
     val_estimee = st.number_input("Valeur nette vendeuse estimée de votre bien actuel (€)", min_value=0.0, step=5000.0, value=250000.0)
 with col_v2:
-    epargne_perso = st.number_input("Épargne personnelle ajoutée au nouveau projet (€)", min_value=0.0, step=1000.0, value=10000.0)
+    epargne_perso = st.number_input("Épargne personnelle ajoutée au projet (€)", min_value=0.0, step=1000.0, value=10000.0, help="Vos économies personnelles que vous injecterez en plus de la revente.")
 
 st.write("")
 col_ptz, col_pp = st.columns(2)
@@ -117,6 +118,13 @@ if len(ptz_flow_total) > 0:
             else:
                 pv_nouveau_pret_lisse = sum((mens_cible_future - p) for p in ptz_flow_futur_padded)
             
+            # --- CALCUL DU TAUX MOYEN PONDÉRÉ DU NOUVEAU FINANCEMENT ---
+            total_emprunte_transfert = crd_ptz_transfert + pv_nouveau_pret_lisse
+            if total_emprunte_transfert > 0:
+                taux_moyen_transfert = (pv_nouveau_pret_lisse * taux_futur) / total_emprunte_transfert
+            else:
+                taux_moyen_transfert = 0
+            
             # --- CALCULS VENTE vs RELAIS (Avec Transfert PTZ) ---
             
             # Cas A : Vente préalable
@@ -143,8 +151,11 @@ if len(ptz_flow_total) > 0:
                 f"<div style='text-align: center; margin-top: 10px; margin-bottom: 25px; background-color: #F0FDF4; border: 2px dashed #10B981; padding: 20px; border-radius: 8px;'>"
                 f"<div style='margin: 0; font-size: 14px; font-weight: 700; color: #065F46; text-transform: uppercase;'>Le pouvoir de la conservation de votre PTZ</div>"
                 f"<div style='margin: 5px 0; font-size: 28px; font-weight: 900; color: #047857;'>+ {fmt(gain_transfert_budget)} € de budget d'achat !</div>"
-                f"<div style='font-size: 13px; color: #065F46;'>"
+                f"<div style='font-size: 13px; color: #065F46; margin-bottom: 12px;'>"
                 f"Par rapport à une situation où vous solderiez tous vos crédits pour repartir de zéro, le simple fait de <b>transférer votre PTZ</b> (taux à 0%) sur le nouveau bien vous offre cette enveloppe supplémentaire pour la <b>même mensualité de {mens_cible_future} €</b>."
+                f"</div>"
+                f"<div style='display: inline-block; background-color: #D1FAE5; padding: 8px 15px; border-radius: 20px; font-size: 13px; color: #065F46; font-weight: bold; border: 1px solid #34D399;'>"
+                f"📉 Taux moyen de votre nouveau financement : {taux_moyen_transfert:.2f} % (au lieu de {taux_futur:.2f} %)"
                 f"</div>"
                 f"</div>"
             )
@@ -194,7 +205,7 @@ if len(ptz_flow_total) > 0:
             html_s2 = (
                 f"<div style='background-color: #FFFBEB; border: 2px solid #F59E0B; border-radius: 8px; padding: 20px; height: 100%;'>"
                 f"<h4 style='color: #92400E; margin-top: 0; font-size: 18px;'>2️⃣ Prêt Relais (Acheter avant de vendre)</h4>"
-                f"<p style='color: #B45309; font-size: 13px; margin-bottom: 20px;'>La banque avance 70% de votre bien. Pour conserver le même budget d'achat, on <b>gonfle temporairement le prêt principal</b>.</p>"
+                f"<p style='color: #B45309; font-size: 13px; margin-bottom: 20px;'>La banque retient 30% de marge de sécurité. Pour combler l'apport manquant, elle <b>gonfle temporairement le prêt principal</b>.</p>"
                 f"<div style='background-color: white; border-radius: 6px; padding: 15px; border: 1px solid #FDE68A;'>"
                 f"<div style='color: #92400E; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #FDE68A; padding-bottom: 5px;'>Plan de financement temporaire (à l'Achat) :</div>"
                 f"<div style='display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 5px;'>"
@@ -259,7 +270,6 @@ if len(ptz_flow_total) > 0:
                     f"</div>"
                 )
                 st.markdown(html_s2_footer, unsafe_allow_html=True)
-
 
             # --- F. GRAPHIQUE PÉDAGOGIQUE DU NOUVEAU LISSAGE ---
             st.write("---")
