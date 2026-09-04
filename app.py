@@ -37,7 +37,7 @@ st.markdown("### 📝 Étape 1 : Votre Prêt à Taux Zéro (PTZ) actuel")
 st.info("💡 Munissez-vous du tableau d'amortissement de votre Prêt à Taux Zéro actuel. Nous n'avons besoin que des données de ce prêt (votre prêt principal sera, lui, soldé lors de la vente).")
 
 is_constant = st.radio(
-    "Les mensualités de votre PTZ sont-elles constantes (identiques) du premier au dernier mois ?",
+    "Les mensualités de votre prêt à taux zéro sont-elles constantes (identiques) du premier au dernier mois ?",
     ("Oui, la mensualité est toujours la même", "Non, il y a des paliers (la mensualité change avec le temps)")
 )
 
