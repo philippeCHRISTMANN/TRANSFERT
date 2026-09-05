@@ -22,6 +22,7 @@ def calc_taux_moyen(capital_total, mensualite_constante, duree_mois):
             low = mid
         else:
             high = mid
+    # Retourne directement la valeur en pourcentage (ex: 2.28)
     return (low + high) / 2
 
 # =================================================================
@@ -90,12 +91,31 @@ with col_ptz:
         st.info(f"Mensualité : **{mens_ptz:.2f} € / mois**")
         ptz_flow_total = [mens_ptz] * int(duree_ptz)
     else:
-        nb_paliers_ptz = st.number_input("Nombre de paliers RESTANTS", min_value=1, max_value=6, value=2, key="nb_pal_ptz")
+        nb_paliers_ptz = st.number_input("Nombre de paliers RESTANTS", min_value=2, max_value=6, value=2, key="nb_pal_ptz")
+        capital_rembourse = 0
         for i in range(int(nb_paliers_ptz)):
             c1, c2 = st.columns(2)
-            with c1: dur_p = st.number_input(f"Durée Palier {i+1} (mois)", min_value=1, step=12, value=60 if i==0 else 180, key=f"ptz_dur_{i}")
-            with c2: men_p = st.number_input(f"Mensualité Palier {i+1} (€)", min_value=0.0, step=10.0, value=0.0 if i==0 else 787.50, key=f"ptz_mens_{i}")
-            ptz_flow_total.extend([men_p] * int(dur_p))
+            with c1: 
+                dur_p = st.number_input(f"Durée Palier {i+1} (mois)", min_value=1, step=12, value=60 if i==0 else 180, key=f"ptz_dur_{i}")
+            
+            # Pour tous les paliers SAUF le dernier, l'utilisateur saisit la mensualité
+            if i < int(nb_paliers_ptz) - 1:
+                with c2: 
+                    men_p = st.number_input(f"Mensualité Palier {i+1} (€)", min_value=0.0, step=10.0, value=0.0 if i==0 else 787.50, key=f"ptz_mens_{i}")
+                capital_rembourse += (men_p * dur_p)
+                ptz_flow_total.extend([men_p] * int(dur_p))
+            
+            # Pour le DERNIER palier, le système calcule tout seul !
+            else:
+                crd_restant = crd_ptz - capital_rembourse
+                men_p = crd_restant / dur_p if (dur_p > 0 and crd_restant > 0) else 0
+                with c2:
+                    st.text_input(f"Mensualité Palier {i+1} (€)", value=f"{men_p:.2f} (Calcul auto)", disabled=True, key=f"ptz_mens_{i}")
+                
+                if crd_restant < 0:
+                    st.error("⚠️ Attention : Les mensualités saisies sur les paliers précédents remboursent déjà plus que votre Capital Restant Dû !")
+                
+                ptz_flow_total.extend([men_p] * int(dur_p))
 
 # PRET PRINCIPAL
 with col_pp:
@@ -109,7 +129,7 @@ with col_pp:
         duree_pp = st.number_input("Mensualités RESTANTES Prêt Principal", min_value=1, step=12, value=204)
         pp_flow_total = [mens_pp] * int(duree_pp)
     else:
-        nb_paliers_pp = st.number_input("Nombre de paliers RESTANTS", min_value=1, max_value=6, value=2, key="nb_pal_pp")
+        nb_paliers_pp = st.number_input("Nombre de paliers RESTANTS (Prêt Principal)", min_value=1, max_value=6, value=2, key="nb_pal_pp")
         for i in range(int(nb_paliers_pp)):
             c1, c2 = st.columns(2)
             with c1: dur_p = st.number_input(f"Durée Palier {i+1} (mois)", min_value=1, step=12, value=120 if i==0 else 84, key=f"pp_dur_{i}")
@@ -118,8 +138,8 @@ with col_pp:
 
 st.write("---")
 
-# --- C. LE FUTUR PROJET ---
-st.markdown("### 🎯 Étape 2 : Le futur projet (Achat)")
+# --- B. LE FUTUR PROJET ---
+st.markdown("### 🎯 Étape 2 : Le futur projet (Acquisition)")
 
 # Mensualité actuelle indicative pour pré-remplir la cible
 max_len_actuel = max(len(ptz_flow_total), len(pp_flow_total))
@@ -134,7 +154,7 @@ with col_t1:
 with col_t2:
     taux_futur = st.number_input("Taux estimé du futur crédit classique (%)", min_value=0.5, value=3.60, step=0.10)
 
-# --- D. CALCULS MATHÉMATIQUES EXPERTS ---
+# --- C. CALCULS MATHÉMATIQUES EXPERTS ---
 if len(ptz_flow_total) == 0:
     st.warning("⚠️ Vous n'avez pas saisi de durée ou de mensualité pour le PTZ. Les calculs ne peuvent pas aboutir.")
 else:
@@ -179,7 +199,7 @@ else:
             cash_transfert = val_estimee - crd_pp
             apport_transfert = cash_transfert + epargne_perso
             
-            # Le Budget d'achat, c'est l'Apport + Le nouveau prêt lissé.
+            # Le Budget d'achat, c'est l'Apport (qui contient l'argent du PTZ !) + Le nouveau prêt lissé.
             budget_achat_transfert = apport_transfert + pv_nouveau_pret_lisse
             
             # --- LE GAIN PUR (Intérêts évités par le lissage) ---
@@ -249,7 +269,7 @@ else:
 <div style='text-align: center; margin-top: 20px; background-color: #F0F9FF; border: 2px dashed #0EA5E9; padding: 20px; border-radius: 8px;'>
 <div style='margin: 0; font-size: 24px; font-weight: 900; color: #0284C7;'>🚀 Le transfert vous fait gagner {fmt(gain_transfert_budget)} € de budget d'achat !</div>
 <div style='font-size: 13px; color: #0369A1; margin-top: 8px; margin-bottom: 15px; max-width: 800px; margin-left: auto; margin-right: auto;'>
-En conservant {fmt(crd_ptz_transfert)} € à 0% au lieu de les emprunter au taux actuel, vous faites une économie d'intérêts massive. C'est du pur pouvoir d'achat récupéré pour la <b>même mensualité globale de {fmt(mens_cible_future)} €</b>.
+Ce gain ne correspond pas au capital du PTZ (qui est une dette), mais à <b>l'économie d'intérêts bancaires</b> réalisée en conservant {fmt(crd_ptz_transfert)} € à 0% au lieu de les emprunter au taux actuel. C'est du pur pouvoir d'achat récupéré pour la <b>même mensualité globale de {fmt(mens_cible_future)} €</b>.
 </div>
 <div style='display: inline-block; background-color: white; padding: 6px 15px; border-radius: 20px; font-size: 13px; color: #0284C7; font-weight: bold; border: 1px solid #BAE6FD;'>
 📉 Taux moyen lissé de votre financement : {taux_moyen_transfert:.2f} % (au lieu de {taux_futur:.2f} %)
