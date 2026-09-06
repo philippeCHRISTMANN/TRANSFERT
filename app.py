@@ -1,43 +1,4 @@
-# --- BANNIÈRE AVEC IMAGE DE FOND ET TEXTE SUPERPOSÉ ---
-# Remplacez l'URL par l'adresse de l'image que vous souhaitez utiliser.
-url_image = "https://www.econopret.fr/" 
 
-st.markdown(f"""
-<style>
-.hero-banner {{
-    background-image: linear-gradient(rgba(0, 51, 102, 0.7), rgba(0, 51, 102, 0.4)), url('{url_image}');
-    background-size: cover;
-    background-position: center;
-    border-radius: 12px;
-    padding: 60px 40px;
-    margin-bottom: 30px;
-    color: white;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-}}
-.hero-title {{
-    font-size: 42px;
-    font-weight: 900;
-    margin-bottom: 10px;
-    line-height: 1.2;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-}}
-.hero-subtitle {{
-    font-size: 20px;
-    font-weight: 400;
-    max-width: 700px;
-    margin-top: 10px;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-}}
-</style>
-
-<div class="hero-banner">
-    <div class="hero-title">Anticipation : Transfert de PTZ & Prêt Relais</div>
-    <div class="hero-subtitle">
-        Découvrez le gain généré par la conservation de votre Prêt à Taux Zéro (PTZ), 
-        puis comparez la mécanique d'achat entre une <b>Vente préalable</b> et un <b>Prêt Relais</b>.
-    </div>
-</div>
-""", unsafe_allow_html=True)
 
 import streamlit as st
 import plotly.graph_objects as go
@@ -87,6 +48,47 @@ st.markdown('<div style="font-size: 24px; font-weight: bold; color: #1E3A8A; bor
 progress_val = (st.session_state.step - 1) / 3.0
 st.progress(progress_val)
 st.write("---")
+
+# --- BANNIÈRE AVEC IMAGE DE FOND ET TEXTE SUPERPOSÉ ---
+# Remplacez l'URL par l'adresse de l'image que vous souhaitez utiliser.
+url_image = "https://www.econopret.fr/" 
+
+st.markdown(f"""
+<style>
+.hero-banner {{
+    background-image: linear-gradient(rgba(0, 51, 102, 0.7), rgba(0, 51, 102, 0.4)), url('{url_image}');
+    background-size: cover;
+    background-position: center;
+    border-radius: 12px;
+    padding: 60px 40px;
+    margin-bottom: 30px;
+    color: white;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+}}
+.hero-title {{
+    font-size: 42px;
+    font-weight: 900;
+    margin-bottom: 10px;
+    line-height: 1.2;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}}
+.hero-subtitle {{
+    font-size: 20px;
+    font-weight: 400;
+    max-width: 700px;
+    margin-top: 10px;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+}}
+</style>
+
+<div class="hero-banner">
+    <div class="hero-title">Anticipation : Transfert de PTZ & Prêt Relais</div>
+    <div class="hero-subtitle">
+        Découvrez le gain généré par la conservation de votre Prêt à Taux Zéro (PTZ), 
+        puis comparez la mécanique d'achat entre une <b>Vente préalable</b> et un <b>Prêt Relais</b>.
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # =================================================================
 # ÉTAPE 1 : RÈGLEMENTATION PTZ
