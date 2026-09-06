@@ -1,10 +1,3 @@
-import streamlit as st
-import plotly.graph_objects as go
-import numpy as np
-
-# Configuration de la page
-st.set_page_config(page_title="Simulateur Transfert PTZ", layout="wide")
-
 # --- BANNIÈRE AVEC IMAGE DE FOND ET TEXTE SUPERPOSÉ ---
 # Remplacez l'URL par l'adresse de l'image que vous souhaitez utiliser.
 url_image = "https://www.econopret.fr/" 
@@ -45,6 +38,14 @@ st.markdown(f"""
     </div>
 </div>
 """, unsafe_allow_html=True)
+
+import streamlit as st
+import plotly.graph_objects as go
+import numpy as np
+
+# Configuration de la page
+st.set_page_config(page_title="Simulateur Transfert PTZ", layout="wide")
+
 
 # Fonction utilitaire pour formater les euros proprement sans casser le HTML
 def fmt(n):
