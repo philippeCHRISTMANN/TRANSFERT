@@ -1,12 +1,9 @@
-
-
 import streamlit as st
 import plotly.graph_objects as go
 import numpy as np
 
 # Configuration de la page
 st.set_page_config(page_title="Simulateur Transfert PTZ", layout="wide")
-
 
 # Fonction utilitaire pour formater les euros proprement sans casser le HTML
 def fmt(n):
@@ -40,18 +37,12 @@ def prev_step():
     st.session_state.step -= 1
 
 # =================================================================
-# HEADER GLOBAL
+# HEADER GLOBAL & BANNIÈRE HERO
 # =================================================================
-st.markdown('<div style="font-size: 24px; font-weight: bold; color: #1E3A8A; border-bottom: 3px solid #E91E63; padding-bottom: 5px; margin-bottom: 20px;">🔄 Anticipation : Transfert de PTZ & Prêt Relais</div>', unsafe_allow_html=True)
-
-# Barre de progression
-progress_val = (st.session_state.step - 1) / 3.0
-st.progress(progress_val)
-st.write("---")
 
 # --- BANNIÈRE AVEC IMAGE DE FOND ET TEXTE SUPERPOSÉ ---
-# Remplacez l'URL par l'adresse de l'image que vous souhaitez utiliser.
-url_image = "https://www.econopret.fr/" 
+# J'ai mis une image générique très professionnelle d'architecture/immobilier pour que ça rende bien.
+url_image = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80" 
 
 st.markdown(f"""
 <style>
@@ -82,13 +73,18 @@ st.markdown(f"""
 </style>
 
 <div class="hero-banner">
-    <div class="hero-title">Anticipation : Transfert de PTZ & Prêt Relais</div>
+    <div class="hero-title">🔄 Anticipation : Transfert de PTZ</div>
     <div class="hero-subtitle">
         Découvrez le gain généré par la conservation de votre Prêt à Taux Zéro (PTZ), 
         puis comparez la mécanique d'achat entre une <b>Vente préalable</b> et un <b>Prêt Relais</b>.
     </div>
 </div>
 """, unsafe_allow_html=True)
+
+# Barre de progression
+progress_val = (st.session_state.step - 1) / 3.0
+st.progress(progress_val)
+st.write("---")
 
 # =================================================================
 # ÉTAPE 1 : RÈGLEMENTATION PTZ
@@ -468,14 +464,17 @@ En conservant {fmt(crd_ptz_transfert)} € à 0% au lieu de les emprunter au tau
 </div>
 """
                 with col_r2:
+                    # Affichage du haut de la carte
                     st.markdown(html_s2_log, unsafe_allow_html=True)
                     
+                    # Paramètres de trésorerie DANS la carte (Interactif)
                     st.markdown("<div style='margin-top: 15px; border-top: 1px dashed #FDE68A; padding-top: 10px;'>", unsafe_allow_html=True)
                     st.markdown("<strong style='color:#92400E; font-size:13px;'>⚙️ Alléger la trésorerie avant la revente :</strong>", unsafe_allow_html=True)
                     choix_relais = st.radio("Paiement de l'avance Relais :", ["Différé PARTIEL (Payer les intérêts)", "Différé TOTAL (0€, intérêts capitalisés)"])
                     choix_pp = st.radio("Paiement du Prêt Principal temporaire :", ["Différé PARTIEL (Payer les intérêts)", "Amortissement IMMÉDIAT (Pleine mensualité)"], index=0)
                     st.markdown("</div>", unsafe_allow_html=True)
                     
+                    # Calculs de la mensualité transitoire
                     mens_ptz_actuelle = ptz_flow_futur_padded[0]
                     int_relais = avance_relais * ((taux_futur + 0.20) / 100 / 12)
                     mens_relais_phase1 = int_relais if "PARTIEL" in choix_relais else 0
@@ -486,6 +485,7 @@ En conservant {fmt(crd_ptz_transfert)} € à 0% au lieu de les emprunter au tau
                     
                     mens_totale_phase_relais = mens_ptz_actuelle + mens_relais_phase1 + mens_pp_phase1
 
+                    # Affichage du bas de la carte
                     html_s2_footer = f"""
 <div style='background-color: #FEF2F2; padding: 10px; border-radius: 6px; border: 1px dashed #EF4444; margin-top: 15px; text-align: center;'>
 <div style='font-size: 12px; color: #B91C1C; font-weight: bold;'>Effort de trésorerie pendant la vente</div>
@@ -510,7 +510,7 @@ En conservant {fmt(crd_ptz_transfert)} € à 0% au lieu de les emprunter au tau
                     st.markdown(html_s2_footer, unsafe_allow_html=True)
 
 
-            # --- GRAPHIQUE ---
+            # --- F. GRAPHIQUE PÉDAGOGIQUE DU NOUVEAU LISSAGE ---
             st.write("---")
             st.markdown("#### 📊 Fonctionnement de votre crédit définitif (Après la revente)")
             st.write(f"Une fois l'ancien bien vendu et le Remboursement Anticipé partiel effectué, le prêt principal se dégonfle. Voici comment la banque calibrera votre nouvelle mensualité cible de {mens_cible_future} € : le prêt classique (en bleu) viendra parfaitement s'emboîter autour des paliers de votre PTZ conservé (en rose).")
