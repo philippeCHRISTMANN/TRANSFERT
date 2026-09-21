@@ -323,7 +323,7 @@ L'objectif de ce simulateur n'est <b>pas</b> de calculer votre capacité d'achat
                 gain_transfert_budget = budget_achat_transfert - budget_achat_soldetout
                 
                 dette_totale_en_cours = crd_ptz_transfert + pv_nouveau_pret_lisse
-                taux_moyen_transfert = calc_taux_moyen(dette_totale_en_cours, mens_cible_future, duree_nouveau_pret_mois) * 100
+                taux_moyen_transfert = calc_taux_moyen(dette_totale_en_cours, mens_cible_future, duree_nouveau_pret_mois)
 
                 # ==========================================
                 # RÉSULTATS : L'AVANTAGE DU TRANSFERT 
